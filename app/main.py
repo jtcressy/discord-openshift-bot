@@ -42,27 +42,24 @@ async def on_message(message):
             if isinstance(message.channel, discord.PrivateChannel):
                 if len(args) == 3:
                     octoken = args[2]
-                    await client.send_message(message.channel, "```" + execute("oc " + oc_config_arg + message.author.id + " login --token " + octoken + " " + oc_server_fqdn + ":" + oc_server_port) + "```")
-                elif len(args) == 4:
+                    await client.send_message(message.channel, "```" + execute("oc " + oc_config_arg + message.author.id + " login --token " + octoken + " " + oc_server_fqdn) + "```")
+                elif len(args) > 3:
                     octoken = args[2]
                     ocurl = args[3]
                     await client.send_message(message.channel, "```" + execute("oc " + oc_config_args + message.author.id + " login --token " + octoken + " " + ocurl) + "```")
                 else:
-                    await client.send_message(message.channel, "You need to supply a token with ``!oc login <token>`` by requesting one from https://cloud.jtcressy.net/oauth/token/request")
+                    await client.send_message(message.channel, "You need to supply a token with ``!oc login <token>`` by requesting one from https://" + oc_server_fqdn + "/oauth/token/request")
             else:
                 await client.send_message(message.author, "You cannot login to OpenShift tools using a public channel. Send me a private message with ``!oc login <token>`` instead.")
                 await client.send_message(message.author, "You need to supply a token with ``!oc login <token>`` by requesting one from https://" + oc_server_fqdn + ":" + oc_server_port + "/oauth/token/request")
                 await client.delete_message(message)
-        elif args[1] == "status":
-            await client.send_message(message.channel, message.author.mention + "```" + execute("oc " + oc_config_arg + message.author.id + " status") + "```")
         else:
             output = execute("oc " + oc_config_arg + message.author.id + " " + " ".join(args[1:]))
             if len(output) > 1000:
-                lines = output.split('\n')
-                n = 30 #send 30 lines at a time
-                [await client.send_message(message.author, "```" + "\n".join(lines[i:i+n])  + "```") for i in range(0, len(lines), n)]
+                n = 1000 #send 1900 characters at a time
+                [await client.send_message(message.author, "```" + "".join(output[i:i+n])  + "```") for i in range(0, len(output), n)]
             else:
-                await client.send_message(message.author if isinstance(message.channel, discord.PrivateChannel) else message.channel, message.author.mention + "```" + output + "```")
+                await client.send_message(message.channel, "```" + output + "```" if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "```" + output + "```")
 
 def execute(command):
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
