@@ -2,6 +2,8 @@
 
 This is a discord bot designed for interacting with an openshift (soon: vanilla kubernetes) cluster and performing commands on-par with the ``oc`` command from the openshift client tools.
 
+With the exception of ``!oc login``, the ``!oc`` base command can be appended with anything the commandline version of ``oc`` supports. (you can also type ``!oc --help`` in the chat and get a full help readout directly from the cli)
+
 ### Current working features:
 - Bot forces login interactions through private messages (no tokens in public chats!)
 - Bot saves a personal kubeconfig file for every unique user ID that uses the ``!oc login`` command (works regardless of nicknames)
