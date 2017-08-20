@@ -28,7 +28,7 @@ async def on_message(message):
                     await client.send_message(message.channel, "You need to supply a token with ``!oc login <token>`` by requesting one from https://cloud.jtcressy.net/oauth/token/request")
             else:
                 await client.send_message(message.author, "You cannot login to OpenShift tools using a public channel. Send me a private message with ``!oc login <token>`` instead.")
-                await client.send_message(message.channel, "You need to supply a token with ``!oc login <token>`` by requesting one from https://cloud.jtcressy.net/oauth/token/request")
+                await client.send_message(message.author, "You need to supply a token with ``!oc login <token>`` by requesting one from https://cloud.jtcressy.net/oauth/token/request")
                 await client.delete_message(message)
         elif args[1] == "status":
             await client.send_message(message.channel, message.author.mention + "```" + execute("oc " + oc_config_arg + message.author.id + " status") + "```")
