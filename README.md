@@ -2,16 +2,28 @@
 
 This is a discord bot designed for interacting with an openshift (soon: vanilla kubernetes) cluster and performing commands on-par with the ``oc`` command from the openshift client tools.
 
-With the exception of ``!oc login``, the ``!oc`` base command can be appended with anything the commandline version of ``oc`` supports. (you can also type ``!oc --help`` in the chat and get a full help readout directly from the cli)
+This bot supports most functions of the ``oc`` command except for:
+- ``!oc login``
+    - Custom login options, can be viewed by typing ``!help login`` in a private message to the bot
+- ``!oc create/apply``
+    - Custom resource handling, you can provide URL's to .yaml/.json files or attach .yaml/.json files to a the command. More help via ``!help files``
+- ``!oc attach``
+    - Due to the limitations of Discord, you cannot currently attach to a container with an interactive console. 
+ (you can also type ``!oc --help`` or ``!help`` in the chat and get a full help readout directly from the cli)
 
 ### Current working features:
 - Bot forces login interactions through private messages (no tokens in public chats!)
 - Bot saves a personal kubeconfig file for every unique user ID that uses the ``!oc login`` command (works regardless of nicknames)
+- Upload your own kubeconfig file by attaching it to the ``!oc login`` command
+    - This is how you connect to vanilla kubernetes clusters, which the ``oc`` command fully supports.
 - Breaks up messages if longer than 1000 chars and sends output via private message to user (e.g. ``!oc describe pod <pod>`` will pm you with the deets)
 - Takes API token and default API URL via environment variable (roadmap: commandline options)
+- Upload a number of .yaml/.json files describing new resources and apply them by attaching the files to the ``!oc create`` or ``!oc apply`` commands
+    - You can also specify a web address for the resources in the same command (e.g. ``!oc create -f http://path/to/resource.yaml``)
+    - Specify a namespace/project by adding ``-n <namespace>`` to the end of your command.
 
 ### Docker Container features:
-- Bot optionally saves kubeconfigs in a persistent volume (kubeconfigs are destroyed on container restart otherwise)
+- Bot optionally saves kubeconfigs in a persistent volume (default is /data/kubeconfigs) (kubeconfigs are destroyed on container restart otherwise)
 
 ### Untested:
 - Unknown how well custom API servers are working. Intended use is ``!oc login <token> <fqdn/ip:port>``
@@ -24,10 +36,8 @@ With the exception of ``!oc login``, the ``!oc`` base command can be appended wi
     - The FQDN (DNS name) or IP addres and port (``ip:port`` or ``fqdn:port``) that points to your cluster's API.
     
 ### Possible Improvements / Roadmap:
-- Support for a vanilla kubernetes cluster
-    - Upload a premade kubeconfig file to use
 - Commandline options for api token/kubeconfig/API address
-- Upload .yaml file when creating/applying resources
+- Download a .yaml/.json file when running ``!oc get <resource> <name> -o yaml|json``
 
 ### Disclaimer
 This was a fun side-project that I initially whipped up in one night, feel free to add to it via PR's or just yell at me for coding mistakes. It's going to have bugs and not always work correctly.
