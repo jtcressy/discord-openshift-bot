@@ -5,7 +5,7 @@ FILES = "files"
 def render(key=GENERAL):
     if key == GENERAL:
             return """
-    General Help
+General Help
 
     You can send commands to me starting with !oc, which are similar to the commands in the OpenShift Client Tools.
     Type ``!oc --help`` to see what commands are available.
@@ -13,6 +13,14 @@ def render(key=GENERAL):
     One difference is the ``!oc login`` command, which you can find out more about by typing ``!help login``
 
     File handling is enabled! Type ``!help files`` for more information.
+
+About
+
+    You can view all source code and deploy your own instance of this bot once visiting my github page: https://github.com/jtcressy/discord-openshift-bot
+
+    LICENSE: https://github.com/jtcressy/discord-openshift-bot/blob/master/LICENSE
+
+    Copyright (C) 2017 Joel Cressy 
             """
     elif key == LOGIN:
             return """
