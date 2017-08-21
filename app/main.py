@@ -98,20 +98,54 @@ async def on_message(message):
             else:
                 await client.delete_message(tmp)
                 await client.send_message(message.author, "ERROR: Could not understand input. \n\n" + helptext.render(helptext.FILES))
-        #elif args[1] == "get": 
-            #if args.index("-o"): Send a file to the client when they request yaml or json data with the get command TBD
-        else:
-            output = execute("oc " + oc_config_arg + message.author.id + " " + " ".join(args[1:]))
-            if len(output) > 1000:
-                n = 1000 #send 1900 characters at a time
-                [await client.send_message(message.author, "```" + "".join(output[i:i+n])  + "```") for i in range(0, len(output), n)]
+        elif args[1] == "get" and message.content.find('-o') >= 0: 
+            filename = ""
+            rtype = args[2]
+            rname = args[3]
+            filetype = ""
+            if args[args.index('-o')+1] == "yaml":
+                filetype = ".yaml"
+            elif args[args.index('-o')+1] == "json":
+                filetype = ".json"
             else:
-                await client.send_message(message.channel, "```" + output + "```" if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "```" + output + "```")
+                await std_send(message, execute("oc " + oc_config_arg + message.author.id + " " + " ".join(args[1:])))
+                return
+            filename = rname + "-" + rtype + filetype
+            exportfilepath = os.path.join(oc_temp_folder, message.author.id + filename)
+            os.makedirs(os.path.dirname(exportfilepath), exist_ok=True)
+            execute("oc " + oc_config_arg + message.author.id + " " + " ".join(args[1:]) + " > " + exportfilepath)
+            with open(exportfilepath, 'r') as f:
+                await client.send_file(message.channel, f, filename=filename, content="Here are your exported resources!")
+        elif args[1] == "export" and len(args) > 2:
+            filename = ""
+            if message.content.find('-l') >= 0:
+                labels = [{x.split('=')[0]:x.split('=')[1]} for x in args if args[args.index(x)-1] == "-l"]
+                for label in labels:
+                    filename += list(label.keys())[0] + "-" + label[list(label.keys())[0]] + "_"
+            if message.content.find('--as-template') >= 0:
+                template_name = [x for x in args if args[args.index(x)].find('--as-template') >= 0]
+                filename += template_name[0].split('=')[1] + "-template"
+            filename += ".yaml"
+            #send send exported .yaml file to channel
+            exportfilepath = os.path.join(oc_temp_folder, message.author.id + filename + ".yaml")
+            os.makedirs(os.path.dirname(exportfilepath), exist_ok=True)
+            execute("oc " + oc_config_arg + message.author.id + " " + args[1] + " " + " ".join(args[2:]) + " > " + exportfilepath)
+            with open(exportfilepath, 'r') as f:
+                await client.send_file(message.channel, f, filename=filename, content="Here are your exported resources!")
+        else:
+            await std_send(message, execute("oc " + oc_config_arg + message.author.id + " " + " ".join(args[1:])))
     elif isinstance(message.channel, discord.PrivateChannel) and message.author != client.user:
         if len(args) > 0 and args[0] == "!help":
             await client.send_message(message.channel, helptext.render(args[1]))
         else:
             await client.send_message(message.channel, helptext.render())
+
+async def std_send(message, output):
+    if len(output) > 1000:
+        n = 1000 #send 1900 characters at a time
+        [await client.send_message(message.author, "```" + "".join(output[i:i+n])  + "```") for i in range(0, len(output), n)]
+    else:
+        await client.send_message(message.channel, "```" + output + "```" if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "```" + output + "```")
 
 def execute(command):
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
