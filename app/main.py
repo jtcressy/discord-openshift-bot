@@ -1,10 +1,12 @@
 import sys, os, subprocess, asyncio, discord
+import helptext
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 from discord.ext import commands
 
 client = discord.Client()
 oc_config_folder = "/data/kubeconfigs/"
+oc_temp_folder = "/tmp/oc"
 oc_config_arg = "--config " + oc_config_folder
 try:
     discord_api_token = os.environ['DISCORD_API_TOKEN']
@@ -17,13 +19,6 @@ try:
 except KeyError as err:
     print("ERROR: No OpenShift API server defined via environment variable: OPENSHIFT_API_FQDN \n Details: \n")
     print(err)
-
-try: 
-    oc_server_port = os.environ['OPENSHIFT_API_PORT']
-except KeyError as err:
-    print("WARN: OPENSHIFT_API_PORT not defined. Details: \n")
-    print(err)
-    pass
 
 
 @client.event
@@ -70,13 +65,41 @@ async def on_message(message):
                     ocurl = args[3]
                     await client.send_message(message.channel, "```" + execute("oc " + oc_config_args + message.author.id + " login --token " + octoken + " " + ocurl) + "```")
                 else:
-                    await client.send_message(message.channel, "You need to supply a token with ``!oc login <token>`` by requesting one from https://" + oc_server_fqdn + "/oauth/token/request")
-                    await client.send_message(message.channel, "To use a custom kubeconfig file, attach your kubeconfig with the exact file name of ``kubeconfig`` with the message ``!oc login upload``")
-                    await client.send_message(message.channel, "You can also download your current kubeconfig with ``!oc login download``")
+                    await client.send_message(message.channel, helptext.render(helptext.LOGIN))
             else:
                 await client.send_message(message.author, "You cannot login to OpenShift tools using a public channel. Send me a private message with ``!oc login <token>`` instead.")
-                await client.send_message(message.author, "You need to supply a token with ``!oc login <token>`` by requesting one from https://" + oc_server_fqdn + "/oauth/token/request")
+                await client.send_message(message.author, helptext.render(helptext.LOGIN))
                 await client.delete_message(message)
+        elif (args[1] == "create" or args[1] == "apply"):
+            output = ""
+            tmp = await client.send_message(message.channel, "Creating Resources..." if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "Creating Resources...")
+            if len(message.attachments) > 0:
+                for attachment in message.attachments:
+                    if attachment['filename'].find('.yaml') >= 0 or attachment['filename'].find('.json') >= 0:
+                        file_ext = ".yaml" if attachment['filename'].find('.yaml') else ".json"
+                        filepath = oc_temp_folder + "/" + message.author.id + "/" + attachment['id'] + file_ext
+                        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                        with open(filepath, 'ab') as f:
+                            req = Request(attachment['url'], headers={'User-Agent': 'Mozilla/5.0'})
+                            with urlopen(req) as url:
+                                f.write(url.read())
+                        if message.content.find('-n') >= 0:
+                            output += execute("oc " + oc_config_arg + message.author.id + " " + args[1] + " -f " + filepath + " -n " + args[args.index("-n")+1])
+                        else:
+                            output += execute("oc " + oc_config_arg + message.author.id + " " + args[1] + " -f " + filepath)
+            urls = [x for x in args if args[args.index(x)-1] == "-f"]
+            for url in urls:
+                if message.content.find('-n') >= 0:
+                    output += execute("oc " + oc_config_arg + message.author.id + " " + args[1] + " -f " + url + " -n " + args[args.index("-n")+1])
+                else:
+                    output += execute("oc " + oc_config_arg + message.author.id + " " + args[1] + " -f " + url)
+            if len(message.attachments) > 0 or len(urls) > 0:
+                await client.edit_message(tmp, "```" + output + "```" if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "```" + output + "```")
+            else:
+                await client.delete_message(tmp)
+                await client.send_message(message.author, "ERROR: Could not understand input. \n\n" + helptext.render(helptext.FILES))
+        #elif args[1] == "get": 
+            #if args.index("-o"): Send a file to the client when they request yaml or json data with the get command TBD
         else:
             output = execute("oc " + oc_config_arg + message.author.id + " " + " ".join(args[1:]))
             if len(output) > 1000:
@@ -85,13 +108,14 @@ async def on_message(message):
             else:
                 await client.send_message(message.channel, "```" + output + "```" if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "```" + output + "```")
     elif isinstance(message.channel, discord.PrivateChannel) and message.author != client.user:
-        await client.send_message(message.channel, renderhelp("general"))
+        if len(args) > 0 and args[0] == "!help":
+            await client.send_message(message.channel, helptext.render(args[1]))
+        else:
+            await client.send_message(message.channel, helptext.render())
+
 def execute(command):
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output, err = p.communicate()
     return output.decode('utf-8')
-
-def renderhelp(key):
-    return "help not yet implemented"
 
 client.run(discord_api_token)
