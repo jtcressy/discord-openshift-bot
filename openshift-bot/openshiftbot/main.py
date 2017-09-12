@@ -1,8 +1,9 @@
-import sys, os, subprocess, asyncio, discord
-import helptext
+import os
+import subprocess
 from urllib.request import urlopen, Request
-from urllib.error import HTTPError
-from discord.ext import commands
+
+import discord
+import openshiftbot.helptext as helptext
 
 client = discord.Client()
 oc_config_folder = "/data/kubeconfigs/"
@@ -11,14 +12,12 @@ oc_config_arg = "--config " + oc_config_folder
 try:
     discord_api_token = os.environ['DISCORD_API_TOKEN']
 except KeyError as err:
-    print("ERROR: API token required for Discord API via env var: DISCORD_API_TOKEN \n Details: \n")
-    print(err)
+    print("ERROR: API token required for Discord API via env var: DISCORD_API_TOKEN \n Details: \n", err)
 
 try:
     oc_server_fqdn = os.environ['OPENSHIFT_API_FQDN']
 except KeyError as err:
-    print("ERROR: No OpenShift API server defined via environment variable: OPENSHIFT_API_FQDN \n Details: \n")
-    print(err)
+    print("ERROR: No OpenShift API server defined via environment variable: OPENSHIFT_API_FQDN \n Details: \n", err)
 
 
 @client.event
@@ -28,15 +27,17 @@ async def on_ready():
     print(client.user.id)
     print('------')
 
+
 @client.event
 async def on_message(message):
     args = message.content.split()
+    print(message.content)
     if len(args) > 0 and args[0] == "!oc":
         if args[1] == "login":
             if isinstance(message.channel, discord.PrivateChannel):
                 if len(args) == 3:
                     if args[2] == "download":
-                        #send kubeconfig file to channel
+                        # send kubeconfig file to channel
                         kubeconfigpath = os.path.join(oc_config_folder, message.author.id)
                         try:
                             file = open(kubeconfigpath, "rb")
@@ -63,14 +64,14 @@ async def on_message(message):
                 elif len(args) > 3:
                     octoken = args[2]
                     ocurl = args[3]
-                    await client.send_message(message.channel, "```" + execute("oc " + oc_config_args + message.author.id + " login --token " + octoken + " " + ocurl) + "```")
+                    await client.send_message(message.channel, "```" + execute("oc " + oc_config_arg + message.author.id + " login --token " + octoken + " " + ocurl) + "```")
                 else:
                     await client.send_message(message.channel, helptext.render(helptext.LOGIN))
             else:
                 await client.send_message(message.author, "You cannot login to OpenShift tools using a public channel. Send me a private message with ``!oc login <token>`` instead.")
                 await client.send_message(message.author, helptext.render(helptext.LOGIN))
                 await client.delete_message(message)
-        elif (args[1] == "create" or args[1] == "apply"):
+        elif args[1] == "create" or args[1] == "apply":
             output = ""
             tmp = await client.send_message(message.channel, "Creating Resources..." if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "Creating Resources...")
             if len(message.attachments) > 0:
@@ -97,7 +98,8 @@ async def on_message(message):
                 await client.edit_message(tmp, "```" + output + "```" if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "```" + output + "```")
             else:
                 await client.delete_message(tmp)
-                await client.send_message(message.author, "ERROR: Could not understand input. \n\n" + helptext.render(helptext.FILES))
+                await client.send_message(message.author, "ERROR: Could not understand input. \n\n" + helptext.render(
+                    helptext.FILES))
         elif args[1] == "get" and message.content.find('-o') >= 0: 
             filename = ""
             rtype = args[2]
@@ -142,14 +144,17 @@ async def on_message(message):
 
 async def std_send(message, output):
     if len(output) > 1000:
-        n = 1000 #send 1900 characters at a time
-        [await client.send_message(message.author, "```" + "".join(output[i:i+n])  + "```") for i in range(0, len(output), n)]
+        n = 1000  # send 1900 characters at a time
+        [await client.send_message(message.author, "```" + "".join(output[i:i+n]) + "```") for i in range(0, len(output), n)]
     else:
         await client.send_message(message.channel, "```" + output + "```" if isinstance(message.channel, discord.PrivateChannel) else message.author.mention + "```" + output + "```")
+
 
 def execute(command):
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output, err = p.communicate()
     return output.decode('utf-8')
 
-client.run(discord_api_token)
+
+def main():
+    client.run(discord_api_token)
