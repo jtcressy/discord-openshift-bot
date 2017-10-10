@@ -12,9 +12,6 @@ except KeyError as err:
     print("ERROR: API token required for Discord API via env var: DISCORD_API_TOKEN \n Details: \n")
     print(err)
 
-p_pwd = Popen("pwd", shell=False, stdout=PIPE, stderr=PIPE, stdin=PIPE)
-pwd, err_pwd = p_pwd.communicate()
-
 try:
     KUBE_CONFIG_FOLDER = os.environ['KUBE_CONFIG_FOLDER']
 except KeyError:
@@ -26,7 +23,7 @@ USER_ROLE_NAME = "kubectl-admin"
 CMD_PREFIX = "!kubectl"
 KUBE_TEMP_FOLDER = "/tmp/kube"
 
-KUBECTL_EXEC_PATH = pwd.decode('utf-8').strip() + "/kubectl"
+KUBECTL_EXEC_PATH = "/usr/bin/kubectl"
 
 @client.event
 async def on_ready():
