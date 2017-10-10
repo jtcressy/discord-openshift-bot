@@ -84,7 +84,7 @@ async def on_message(message: discord.Message):
 async def parse_command(message: discord.Message):
     """Parses command with given args and replies to original message sender"""
     args = message.content.split()
-    tail: bool = (args[-1] == "tail")  # last argument is tail
+    tail = (args[-1] == "tail")  # last argument is tail
         # !kubectl <args> tail outputs only the tail end of the whole output
     kubeconfigpath = os.path.join(KUBE_CONFIG_FOLDER, message.server.id)
         # Kube configs are server wide and server specific
